@@ -1,15 +1,18 @@
 from ollama import embed, chat
 import math
 
+
 # Carrega o conteúdo da LGPD
 with open("documentos/lgpd.txt", "r", encoding="utf-8") as arquivo:
     texto = arquivo.read()
+
 
 # Divide o documento em chunks de 500 caracteres
 chunks = [
     texto[i:i + 500]
     for i in range(0, len(texto), 500)
 ]
+
 
 # Cria embeddings para cada chunk
 embeddings = []
@@ -20,8 +23,6 @@ for chunk in chunks:
         input=chunk
     )
     embeddings.append(resposta["embeddings"][0])
-
-print(f"Documento dividido em {len(chunks)} chunks.")
 
 
 # Calcula a similaridade de cosseno entre dois vetores
@@ -61,42 +62,45 @@ def recuperar_chunks(pergunta, k=5):
     return resultados[:k]
 
 
-# Inicia o chat
-print("\nRAG da LGPD iniciado.")
-print("Digite 'sair' para encerrar.\n")
+# Inicia o chat apenas quando rag.py é executado diretamente
+if __name__ == "__main__":
+    print(f"Documento dividido em {len(chunks)} chunks.")
+    print("\nRAG da LGPD iniciado.")
+    print("Digite 'sair' para encerrar.\n")
 
-while True:
-    pergunta = input("Você: ").strip()
+    while True:
+        pergunta = input("Você: ").strip()
 
-    if pergunta.lower() == "sair":
-        print("Até mais!")
-        break
+        if pergunta.lower() == "sair":
+            print("Até mais!")
+            break
 
-    if not pergunta:
-        continue
+        if not pergunta:
+            continue
 
-    # Recupera os 5 chunks mais relevantes
-    resultados = recuperar_chunks(pergunta, k=5)
+        # Recupera os 5 chunks mais relevantes
+        resultados = recuperar_chunks(pergunta, k=5)
 
-    # Monta o contexto que será enviado ao Qwen
-    contexto = "\n\n".join(
-        chunk for _, _, chunk in resultados
-    )
-
-    # Mostra os trechos recuperados
-    print("\n--- Trechos recuperados ---\n")
-
-    for posicao, (similaridade, indice, chunk) in enumerate(
-        resultados, start=1
-    ):
-        print(
-            f"[{posicao}] Similaridade: {similaridade:.4f}"
+        # Monta o contexto que será enviado ao Qwen
+        contexto = "\n\n".join(
+            chunk for _, _, chunk in resultados
         )
-        print(chunk)
-        print()
 
-    # Prompt enviado ao Qwen
-    prompt = f"""
+        # Mostra os trechos recuperados
+        print("\n--- Trechos recuperados ---\n")
+
+        for posicao, (similaridade, indice, chunk) in enumerate(
+            resultados, start=1
+        ):
+            print(
+                f"[{posicao}] Chunk {indice} | "
+                f"Similaridade: {similaridade:.4f}"
+            )
+            print(chunk)
+            print()
+
+        # Prompt enviado ao Qwen
+        prompt = f"""
 Responda à pergunta utilizando apenas as informações
 presentes no contexto abaixo.
 
@@ -111,17 +115,17 @@ PERGUNTA:
 {pergunta}
 """
 
-    # Gera a resposta usando o contexto recuperado
-    response = chat(
-        model="qwen3:4b",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        think=False
-    )
+        # Gera a resposta usando o contexto recuperado
+        response = chat(
+            model="qwen3:4b",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            think=False
+        )
 
-    print("Assistente:", response.message.content)
-    print()
+        print("Assistente:", response.message.content)
+        print()
