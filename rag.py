@@ -1,5 +1,6 @@
 from ollama import embed, chat
 import math
+import re
 
 
 # Carrega o conteúdo da LGPD
@@ -7,11 +8,19 @@ with open("documentos/lgpd.txt", "r", encoding="utf-8") as arquivo:
     texto = arquivo.read()
 
 
-# Divide o documento em chunks de 500 caracteres
-chunks = [
-    texto[i:i + 500]
-    for i in range(0, len(texto), 500)
-]
+# # Divide o documento em chunks de 500 caracteres
+# chunks = [
+#     texto[i:i + 500]
+#     for i in range(0, len(texto), 500)
+# ]
+
+# Carrega o conteúdo da LGPD
+with open("documentos/lgpd.txt", "r", encoding="utf-8") as arquivo:
+    texto = arquivo.read()
+
+# Divide o texto mantendo cada artigo como um chunk independente
+brutos = re.split(r'(?=Art\. \d+º?)', texto)
+chunks = [b.strip() for b in brutos if b.strip()]
 
 
 # Cria embeddings para cada chunk
